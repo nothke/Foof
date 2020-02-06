@@ -19,11 +19,22 @@ int main(int argc, char *argv[])
 		std::cout << "SDL could not initialize " << SDL_GetError() << std::endl;
 	}
 
-	const int HEIGHT = 480;
-	const int WIDTH = 640;
+	SDL_DisplayMode dmode;
+	SDL_GetCurrentDisplayMode(0, &dmode);
 
-	SDL_Window *window = SDL_CreateWindow("FOOF FOOF FOOOOOF", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
+	int res_w = dmode.w;
+	int res_h = dmode.h;
+
+	int screen_w = res_w / 2; //640;
+	int screen_h = res_h / 2; //480;
+
+	SDL_Window *window = SDL_CreateWindow("FOOF FOOF FOOOOOF", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, res_w, res_h, 0);
+	SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	//SDL_SetWindowDisplayMode(window, &dmode);
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+
+	//SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
+	SDL_RenderSetLogicalSize(renderer, screen_w, screen_h);
 
 	SDL_Event event;
 	int quit = 0;
@@ -150,20 +161,20 @@ int main(int argc, char *argv[])
 		SDL_Rect playerRect = { playerX, playerY, playerSizeX, playerSizeY };
 
 		// Collide player with screen bounds
-		if (playerY > HEIGHT - playerSizeY)
+		if (playerY > screen_h - playerSizeY)
 		{
 			velocityY = -velocityY * 0.5f;
-			playerY = HEIGHT - playerSizeY;
+			playerY = screen_h - playerSizeY;
 		}
 		if (playerY < 0)
 		{
 			velocityY = 0;
 			playerY = 0;
 		}
-		if (playerX > WIDTH - playerSizeX)
+		if (playerX > screen_w - playerSizeX)
 		{
 			velocityX = 0;
-			playerX = WIDTH - playerSizeX;
+			playerX = screen_w - playerSizeX;
 		}
 		if (playerX < 0)
 		{
@@ -210,10 +221,10 @@ int main(int argc, char *argv[])
 				particle.lifetime -= dt;
 
 				// Collide with screen bounds
-				if (particle.y > HEIGHT)
+				if (particle.y > screen_h)
 				{
 					particle.vy = -particle.vy * 0.5f;
-					particle.y = HEIGHT;
+					particle.y = screen_h;
 				}
 
 				// Collide with platforms
