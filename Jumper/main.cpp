@@ -2,9 +2,8 @@
 #include <iostream>
 #include <SDL.h>
 
-class Particle
+struct Particle
 {
-public:
 	float x;
 	float y;
 	float vx;
