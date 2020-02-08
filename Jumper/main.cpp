@@ -11,6 +11,18 @@ struct Particle
 	float lifetime = 0;
 };
 
+static int TestThread(void *data)
+{
+	int ct;
+
+	for (ct = 0; ct < 10; ct++)
+	{
+		printf("Thread count");
+	}
+
+	return (int)data;
+}
+
 int main(int argc, char *argv[])
 {
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -21,15 +33,21 @@ int main(int argc, char *argv[])
 	SDL_DisplayMode dmode;
 	SDL_GetCurrentDisplayMode(0, &dmode);
 
-	int res_w = dmode.w;
-	int res_h = dmode.h;
+	const bool fullscreen = false;
+
+	int res_w = fullscreen ? dmode.w : 640;
+	int res_h = fullscreen ? dmode.h : 480;
 
 	int screen_w = res_w / 2; //640;
 	int screen_h = res_h / 2; //480;
 
-	SDL_Window *window = SDL_CreateWindow("FOOF FOOF FOOOOOF", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, res_w, res_h, 0);
-	SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-	//SDL_SetWindowDisplayMode(window, &dmode);
+	SDL_Window *window = SDL_CreateWindow("FOOF FOOF FOOOOOF",
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		res_w, res_h, 0);
+
+	if (fullscreen)
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 
 	//SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
@@ -72,7 +90,19 @@ int main(int argc, char *argv[])
 		{330, 100, 20, 300}
 	};
 
-	Particle particles[10000];
+	int threadsCount = 2;
+	const int particlesCount = 8192;
+	int particlesPerThread = particlesCount / threadsCount;
+	Particle particles[particlesCount];
+
+	SDL_Thread *thread;
+	int threadReturnValue;
+
+	int threadData = 5345345;
+	thread = SDL_CreateThread(TestThread, "Test Thread", (void *)threadData);
+
+	SDL_WaitThread(thread, &threadReturnValue);
+	printf("Thread returned value: %d\n", threadReturnValue);
 
 	while (!quit)
 	{
