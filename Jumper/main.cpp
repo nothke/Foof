@@ -33,6 +33,17 @@ const float FRICTION = 0.98f;
 const float DRAG = 0.002f;
 const float GRAVITY = 3;
 
+static int screen_w;
+static int screen_h;
+
+SDL_Rect platforms[] =
+{
+	{50, 200, 100, 60},
+	{200, 200, 100, 60},
+	{200, 300, 100, 60},
+	{330, 100, 20, 300}
+};
+
 static int TestThread(void* data)
 {
 	int ct;
@@ -52,10 +63,56 @@ void Increment(int* i)
 
 void SimulateParticle(Particle& p, float dt)
 {
-	p.x += p.vx * dt;
-	p.y += p.vy * dt;
-	p.vy += GRAVITY * dt;
-	p.lifetime -= dt;
+	if (p.lifetime > 0)
+	{
+		p.x += p.vx * dt;
+		p.y += p.vy * dt;
+		p.vy += GRAVITY * dt;
+		p.lifetime -= dt;
+
+		// Collide with screen bounds
+		if (p.y > screen_h)
+		{
+			p.vy = -p.vy * 0.5f;
+			p.y = screen_h;
+		}
+
+		// Collide with platforms
+		for (SDL_Rect platformRect : platforms)
+		{
+			int x = p.x;
+			int y = p.y;
+			int x2 = x + p.vx * dt;
+			int y2 = y + p.vy * dt;
+
+			if (SDL_IntersectRectAndLine(&platformRect, &x, &y, &x2, &y2))
+			{
+				// which side was hit?
+				if (y == platformRect.y || y2 == platformRect.y) // top
+				{
+					p.y = platformRect.y;
+					p.vy *= -RESTITUTION;
+				}
+				else if (y == platformRect.y + platformRect.h - 1
+					|| y2 == platformRect.y + platformRect.h - 1) // bottom
+				{
+					p.y = platformRect.y + platformRect.h;
+					p.vy *= -RESTITUTION;
+				}
+				else if (x == platformRect.x || x2 == platformRect.x) // left
+				{
+					p.x = platformRect.x;
+					p.vx *= -RESTITUTION;
+				}
+				else if (x == platformRect.x + platformRect.w - 1
+					|| x2 == platformRect.x + platformRect.w - 1) // right
+				{
+					p.x = platformRect.x + platformRect.w;
+					p.vx *= -RESTITUTION;
+				}
+			}
+		}
+	}
 }
 
 static int ParticleThread(void* data)
@@ -80,6 +137,7 @@ static int ParticleThread(void* data)
 	return 0;
 }
 
+
 int main(int argc, char *argv[])
 {
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -92,11 +150,18 @@ int main(int argc, char *argv[])
 
 	const bool fullscreen = false;
 
+//#define PIXELATED
+
 	int res_w = fullscreen ? dmode.w : 640;
 	int res_h = fullscreen ? dmode.h : 480;
 
-	int screen_w = res_w / 2; //640;
-	int screen_h = res_h / 2; //480;
+#ifdef PIXELATED
+	screen_w = res_w / 2;
+	screen_h = res_h / 2;
+#else
+	screen_w = res_w;
+	screen_h = res_h;
+#endif
 
 	SDL_Window *window = SDL_CreateWindow("FOOF FOOF FOOOOOF",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -108,7 +173,9 @@ int main(int argc, char *argv[])
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 
 	//SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
+#ifdef PIXELATED
 	SDL_RenderSetLogicalSize(renderer, screen_w, screen_h);
+#endif
 
 	SDL_Event event;
 	int quit = 0;
@@ -139,13 +206,7 @@ int main(int argc, char *argv[])
 	const int key_down = SDLK_s;
 	const int key_up = SDLK_w;
 
-	SDL_Rect platforms[] =
-	{
-		{50, 200, 100, 60},
-		{200, 200, 100, 60},
-		{200, 300, 100, 60},
-		{330, 100, 20, 300}
-	};
+
 
 	while (!quit)
 	{
