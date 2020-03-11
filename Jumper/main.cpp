@@ -25,6 +25,13 @@ static Particle particles[particlesCount];
 const int threadsCount = 2;
 const int particlesPerThread = particlesCount / threadsCount;
 
+static SDL_Thread* threads[threadsCount];
+
+const float RESTITUTION = 0.5f;
+const float FRICTION = 0.98f;
+const float DRAG = 0.002f;
+const float GRAVITY = 3;
+
 static int TestThread(void* data)
 {
 	int ct;
@@ -37,20 +44,42 @@ static int TestThread(void* data)
 	return (int)data;
 }
 
+void Increment(int* i)
+{
+	(*i) = 1;
+}
+
 static int ParticleThread(void* data)
 {
 	ThreadParticleChunk* tpc = (ThreadParticleChunk*)data;
 	//((ThreadParticleChunk*)data)->length; // this works too?
 
-	size_t stride = sizeof(particles[0]);
+	int l = tpc->length;
+	int s = tpc->startValue;
 
-	int l = tpc->length * stride;
-	int s = tpc->startValue * stride;
+	float dt = 1.0f / 60;
 
-	for (size_t i = s; i < l; i += stride)
+	for (size_t i = s; i < l; i++)
 	{
+		Particle particle = particles[i];
 
+		particle.x += particle.vx * dt;
+		particle.y += particle.vy * dt;
+		particle.vy += GRAVITY * dt;
+		particle.lifetime -= dt;
+
+		//SimulateParticle(particle, dt);
 	}
+
+	return 0;
+}
+
+void SimulateParticle(Particle& particle, float dt)
+{
+	particle.x += particle.vx * dt;
+	particle.y += particle.vy * dt;
+	particle.vy += GRAVITY * dt;
+	particle.lifetime -= dt;
 }
 
 int main(int argc, char *argv[])
@@ -120,47 +149,26 @@ int main(int argc, char *argv[])
 		{330, 100, 20, 300}
 	};
 
-
-	//Particle particles[particlesCount];
-
-	LOG("ints");
-	int ints[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-
-	for (size_t i = 5; i < 10; i++)
-	{
-		LOG(ints[i]);
-	}
-
-	LOG("Particles");
-	Particle testicles[10];
-
-	for (size_t i = 0; i < 10; i++)
-	{
-		testicles[i].lifetime = i;
-		LOG(testicles[i].lifetime);
-	}
-
-	for (size_t i = 5; i < 10; i++)
-	{
-		testicles[i].lifetime *= 2;
-		LOG(testicles[i].lifetime);
-	}
-
-#if THREADING
-	SDL_Thread *threads[threadsCount];
+#if !THREADING
+	//SDL_Thread* threads = SDL_Thread[threadsCount];
 	int threadReturnValue;
 
-	/*
+	for (size_t i = 0; i < threadsCount; i++)
+	{
+		auto thread = threads[i];
+
+		ThreadParticleChunk chunk;
+		chunk.startValue = i * particlesPerThread;
+		chunk.length = particlesCount;
+		thread = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
+	}
+
 	for (SDL_Thread* thread : threads)
 	{
-		ThreadParticleChunk threadData;
-		threadData.length = 10;
-		threadData.startValue =
-		thread = SDL_CreateThread(ParticleThread, "Particle Thread", (void *)threadData);
-	}*/
+		SDL_WaitThread(thread, &threadReturnValue);
+		printf("Thread returned value: %d\n", threadReturnValue);
+	}
 
-	SDL_WaitThread(thread, &threadReturnValue);
-	printf("Thread returned value: %d\n", threadReturnValue);
 #endif
 
 	while (!quit)
@@ -232,10 +240,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		const float RESTITUTION = 0.5f;
-		const float FRICTION = 0.98f;
-		const float DRAG = 0.002f;
-		const float GRAVITY = 3;
+
 
 		// Simulate player
 		velocityX *= 1 - DRAG;
