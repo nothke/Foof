@@ -275,6 +275,20 @@ int main(int argc, char *argv[])
 			}
 		}
 
+#ifdef THREADING
+		int threadReturnValue;
+
+		for (size_t i = 0; i < threadsCount; i++)
+		{
+			auto thread = threads[i];
+
+			ThreadParticleChunk chunk;
+			chunk.startValue = i * particlesPerThread;
+			chunk.length = particlesCount;
+			thread = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
+		}
+#endif
+
 		// Simulate player
 		velocityX *= 1 - DRAG;
 		velocityY *= 1 - DRAG;
@@ -337,18 +351,7 @@ int main(int argc, char *argv[])
 		}
 
 #ifdef THREADING
-		int threadReturnValue;
-
-		for (size_t i = 0; i < threadsCount; i++)
-		{
-			auto thread = threads[i];
-
-			ThreadParticleChunk chunk;
-			chunk.startValue = i * particlesPerThread;
-			chunk.length = particlesCount;
-			thread = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
-		}
-
+		// Wait for particle threads to finish
 		for (SDL_Thread* thread : threads)
 		{
 			SDL_WaitThread(thread, &threadReturnValue);
