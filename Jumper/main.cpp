@@ -280,12 +280,10 @@ int main(int argc, char *argv[])
 
 		for (size_t i = 0; i < threadsCount; i++)
 		{
-			auto thread = threads[i];
-
 			ThreadParticleChunk chunk;
 			chunk.startValue = i * particlesPerThread;
 			chunk.length = particlesCount;
-			thread = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
+			threads[i] = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
 		}
 #endif
 
