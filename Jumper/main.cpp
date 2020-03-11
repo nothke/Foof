@@ -126,9 +126,24 @@ int main(int argc, char *argv[])
 	LOG("ints");
 	int ints[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
-	for (size_t i = 0; i < 10; i++)
+	for (size_t i = 5; i < 10; i++)
 	{
 		LOG(ints[i]);
+	}
+
+	LOG("Particles");
+	Particle testicles[10];
+
+	for (size_t i = 0; i < 10; i++)
+	{
+		testicles[i].lifetime = i;
+		LOG(testicles[i].lifetime);
+	}
+
+	for (size_t i = 5; i < 10; i++)
+	{
+		testicles[i].lifetime *= 2;
+		LOG(testicles[i].lifetime);
 	}
 
 #if THREADING
