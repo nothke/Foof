@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #define THREADING
+//#define PIXELATED
 #define LOG(x) std::cout << x << std::endl
 
 struct Particle
@@ -35,6 +36,7 @@ const float GRAVITY = 3;
 
 static int screen_w;
 static int screen_h;
+static float dt;
 
 SDL_Rect platforms[] =
 {
@@ -123,8 +125,6 @@ static int ParticleThread(void* data)
 	int l = tpc->length;
 	int s = tpc->startValue;
 
-	float dt = 1.0f / 60;
-
 	for (size_t i = s; i < l; i++)
 	{
 		//auto particle = &particles[i];
@@ -149,8 +149,6 @@ int main(int argc, char *argv[])
 	SDL_GetCurrentDisplayMode(0, &dmode);
 
 	const bool fullscreen = false;
-
-//#define PIXELATED
 
 	int res_w = fullscreen ? dmode.w : 640;
 	int res_h = fullscreen ? dmode.h : 480;
@@ -182,7 +180,7 @@ int main(int argc, char *argv[])
 
 	const int FPS = 120;
 	const int frameDelay = 1000 / FPS;
-	const float dt = 1.0f / FPS;
+	dt = 1.0f / FPS;
 
 	Uint32 frameStart;
 	int frameTime;
@@ -255,7 +253,7 @@ int main(int argc, char *argv[])
 		if (b_up)
 		{
 			// spawn particle
-			int spawnPerFrame = 8;
+			int spawnPerFrame = 32;
 			for (Particle &particle : particles)
 			{
 				if (particle.lifetime <= 0)
@@ -358,58 +356,7 @@ int main(int argc, char *argv[])
 #else
 		// simulate particles
 		for (Particle &particle : particles)
-		{
-			if (particle.lifetime > 0)
-			{
-				particle.x += particle.vx * dt;
-				particle.y += particle.vy * dt;
-				particle.vy += GRAVITY * dt;
-				particle.lifetime -= dt;
-
-				// Collide with screen bounds
-				if (particle.y > screen_h)
-				{
-					particle.vy = -particle.vy * 0.5f;
-					particle.y = screen_h;
-				}
-
-				// Collide with platforms
-				for (SDL_Rect platformRect : platforms)
-				{
-					int x = particle.x;
-					int y = particle.y;
-					int x2 = x + particle.vx * dt;
-					int y2 = y + particle.vy * dt;
-
-					if (SDL_IntersectRectAndLine(&platformRect, &x, &y, &x2, &y2))
-					{
-						// which side was hit?
-						if (y == platformRect.y || y2 == platformRect.y) // top
-						{
-							particle.y = platformRect.y;
-							particle.vy *= -RESTITUTION;
-						}
-						else if (y == platformRect.y + platformRect.h - 1
-							|| y2 == platformRect.y + platformRect.h - 1) // bottom
-						{
-							particle.y = platformRect.y + platformRect.h;
-							particle.vy *= -RESTITUTION;
-						}
-						else if (x == platformRect.x || x2 == platformRect.x) // left
-						{
-							particle.x = platformRect.x;
-							particle.vx *= -RESTITUTION;
-						}
-						else if (x == platformRect.x + platformRect.w - 1
-							|| x2 == platformRect.x + platformRect.w - 1) // right
-						{
-							particle.x = platformRect.x + platformRect.w;
-							particle.vx *= -RESTITUTION;
-						}
-					}
-				}
-			}
-		}
+			SimulateParticle(particle, dt);
 #endif
 
 		// DRAWING
@@ -451,7 +398,7 @@ int main(int argc, char *argv[])
 		{
 			SDL_Delay(frameDelay - frameTime);
 		}
-	}
+		}
 
 	return EXIT_SUCCESS;
-}
+	}
