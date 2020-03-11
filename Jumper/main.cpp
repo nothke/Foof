@@ -2,6 +2,7 @@
 #include <iostream>
 #include <SDL.h>
 
+#define THREADING
 #define LOG(x) std::cout << x << std::endl
 
 struct Particle
@@ -22,7 +23,7 @@ struct ThreadParticleChunk
 const int particlesCount = 8192;
 static Particle particles[particlesCount];
 
-const int threadsCount = 2;
+const int threadsCount = 4;
 const int particlesPerThread = particlesCount / threadsCount;
 
 static SDL_Thread* threads[threadsCount];
@@ -61,12 +62,12 @@ static int ParticleThread(void* data)
 
 	for (size_t i = s; i < l; i++)
 	{
-		Particle particle = particles[i];
+		auto particle = &particles[i];
 
-		particle.x += particle.vx * dt;
-		particle.y += particle.vy * dt;
-		particle.vy += GRAVITY * dt;
-		particle.lifetime -= dt;
+		particle->x += particle->vx * dt;
+		particle->y += particle->vy * dt;
+		particle->vy += GRAVITY * dt;
+		particle->lifetime -= dt;
 
 		//SimulateParticle(particle, dt);
 	}
@@ -149,27 +150,7 @@ int main(int argc, char *argv[])
 		{330, 100, 20, 300}
 	};
 
-#if !THREADING
-	//SDL_Thread* threads = SDL_Thread[threadsCount];
-	int threadReturnValue;
 
-	for (size_t i = 0; i < threadsCount; i++)
-	{
-		auto thread = threads[i];
-
-		ThreadParticleChunk chunk;
-		chunk.startValue = i * particlesPerThread;
-		chunk.length = particlesCount;
-		thread = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
-	}
-
-	for (SDL_Thread* thread : threads)
-	{
-		SDL_WaitThread(thread, &threadReturnValue);
-		printf("Thread returned value: %d\n", threadReturnValue);
-	}
-
-#endif
 
 	while (!quit)
 	{
@@ -303,6 +284,24 @@ int main(int argc, char *argv[])
 			}
 		}
 
+#ifdef THREADING
+		int threadReturnValue;
+
+		for (size_t i = 0; i < threadsCount; i++)
+		{
+			auto thread = threads[i];
+
+			ThreadParticleChunk chunk;
+			chunk.startValue = i * particlesPerThread;
+			chunk.length = particlesCount;
+			thread = SDL_CreateThread(ParticleThread, "Particle Thread", &chunk);
+		}
+
+		for (SDL_Thread* thread : threads)
+		{
+			SDL_WaitThread(thread, &threadReturnValue);
+		}
+#else
 		// simulate particles
 		for (Particle &particle : particles)
 		{
@@ -357,6 +356,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+#endif
 
 		// DRAWING
 
