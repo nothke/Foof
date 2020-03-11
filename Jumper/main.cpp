@@ -2,6 +2,8 @@
 #include <iostream>
 #include <SDL.h>
 
+#define LOG(x) std::cout << x << std::endl
+
 struct Particle
 {
 	float x;
@@ -11,7 +13,19 @@ struct Particle
 	float lifetime = 0;
 };
 
-static int TestThread(void *data)
+struct ThreadParticleChunk
+{
+	int startValue;
+	int length;
+};
+
+const int particlesCount = 8192;
+static Particle particles[particlesCount];
+
+const int threadsCount = 2;
+const int particlesPerThread = particlesCount / threadsCount;
+
+static int TestThread(void* data)
 {
 	int ct;
 
@@ -21,6 +35,22 @@ static int TestThread(void *data)
 	}
 
 	return (int)data;
+}
+
+static int ParticleThread(void* data)
+{
+	ThreadParticleChunk* tpc = (ThreadParticleChunk*)data;
+	//((ThreadParticleChunk*)data)->length; // this works too?
+
+	size_t stride = sizeof(particles[0]);
+
+	int l = tpc->length * stride;
+	int s = tpc->startValue * stride;
+
+	for (size_t i = s; i < l; i += stride)
+	{
+
+	}
 }
 
 int main(int argc, char *argv[])
@@ -90,19 +120,33 @@ int main(int argc, char *argv[])
 		{330, 100, 20, 300}
 	};
 
-	int threadsCount = 2;
-	const int particlesCount = 8192;
-	int particlesPerThread = particlesCount / threadsCount;
-	Particle particles[particlesCount];
 
-	SDL_Thread *thread;
+	//Particle particles[particlesCount];
+
+	LOG("ints");
+	int ints[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+	for (size_t i = 0; i < 10; i++)
+	{
+		LOG(ints[i]);
+	}
+
+#if THREADING
+	SDL_Thread *threads[threadsCount];
 	int threadReturnValue;
 
-	int threadData = 5345345;
-	thread = SDL_CreateThread(TestThread, "Test Thread", (void *)threadData);
+	/*
+	for (SDL_Thread* thread : threads)
+	{
+		ThreadParticleChunk threadData;
+		threadData.length = 10;
+		threadData.startValue =
+		thread = SDL_CreateThread(ParticleThread, "Particle Thread", (void *)threadData);
+	}*/
 
 	SDL_WaitThread(thread, &threadReturnValue);
 	printf("Thread returned value: %d\n", threadReturnValue);
+#endif
 
 	while (!quit)
 	{
@@ -305,7 +349,7 @@ int main(int argc, char *argv[])
 
 		// Draw particles
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-		for (Particle &particle : particles)
+		for (Particle& particle : particles)
 		{
 			if (particle.lifetime > 0)
 			{
