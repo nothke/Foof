@@ -50,6 +50,14 @@ void Increment(int* i)
 	(*i) = 1;
 }
 
+void SimulateParticle(Particle& p, float dt)
+{
+	p.x += p.vx * dt;
+	p.y += p.vy * dt;
+	p.vy += GRAVITY * dt;
+	p.lifetime -= dt;
+}
+
 static int ParticleThread(void* data)
 {
 	ThreadParticleChunk* tpc = (ThreadParticleChunk*)data;
@@ -62,25 +70,14 @@ static int ParticleThread(void* data)
 
 	for (size_t i = s; i < l; i++)
 	{
-		auto particle = &particles[i];
+		//auto particle = &particles[i];
 
-		particle->x += particle->vx * dt;
-		particle->y += particle->vy * dt;
-		particle->vy += GRAVITY * dt;
-		particle->lifetime -= dt;
+		SimulateParticle(particles[i], dt);
 
 		//SimulateParticle(particle, dt);
 	}
 
 	return 0;
-}
-
-void SimulateParticle(Particle& particle, float dt)
-{
-	particle.x += particle.vx * dt;
-	particle.y += particle.vy * dt;
-	particle.vy += GRAVITY * dt;
-	particle.lifetime -= dt;
 }
 
 int main(int argc, char *argv[])
@@ -149,8 +146,6 @@ int main(int argc, char *argv[])
 		{200, 300, 100, 60},
 		{330, 100, 20, 300}
 	};
-
-
 
 	while (!quit)
 	{
@@ -221,8 +216,6 @@ int main(int argc, char *argv[])
 			}
 		}
 
-
-
 		// Simulate player
 		velocityX *= 1 - DRAG;
 		velocityY *= 1 - DRAG;
@@ -256,7 +249,7 @@ int main(int argc, char *argv[])
 			playerX = 0;
 		}
 
-		// Collide with platforms
+		// Collide player with platforms
 		for (SDL_Rect platformRect : platforms)
 		{
 			SDL_Rect result;
